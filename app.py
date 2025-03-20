@@ -1,47 +1,64 @@
+import pdfplumber
+import pytesseract
+from PIL import Image
+import fitz  # PyMuPDF
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import pdfplumber
 
 app = Flask(__name__)
 CORS(app)
 
+def is_scanned_pdf(pdf_path):
+    """Checks if a PDF is scanned (contains no selectable text)."""
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            if page.get_text():  # If text is found, it's not scanned
+                return False
+    return True  # No text found, likely a scanned PDF
+
+def extract_text_from_scanned_pdf(pdf_path):
+    """Extracts text from a scanned PDF using OCR."""
+    text = ""
+    with fitz.open(pdf_path) as doc:
+        for page_num in range(len(doc)):
+            img = page.get_pixmap()  # Convert page to an image
+            img = Image.frombytes("RGB", [img.width, img.height], img.samples)
+            text += pytesseract.image_to_string(img) + "\n"
+    return text
+
 def extract_transactions(pdf_path):
-    """Extracts transactions dynamically from a bank statement PDF."""
+    """Extracts transactions from a PDF (both digital & scanned)."""
     transactions = []
-
-    try:
+    
+    if is_scanned_pdf(pdf_path):
+        raw_text = extract_text_from_scanned_pdf(pdf_path).split("\n")
+    else:
         with pdfplumber.open(pdf_path) as pdf:
+            raw_text = []
             for page in pdf.pages:
-                tables = page.extract_tables()
+                raw_text.extend(page.extract_text().split("\n"))
 
-                for table in tables:
-                    for row in table:
-                        # Skip empty rows or header rows
-                        if not row or "Date" in row[0]:
-                            continue  
-
-                        try:
-                            date = row[0]  # First column is Date
-                            description = row[1]  # Second column is Description
-                            amount = row[-3]  # Third last column is Amount
-                            fees = row[-2]  # Second last column is Fees
-                            balance = row[-1]  # Last column is Balance
-
-                            transactions.append({
-                                "date": date.strip(),
-                                "description": description.strip(),
-                                "amount": amount.strip(),
-                                "fees": fees.strip(),
-                                "balance": balance.strip()
-                            })
-                        except IndexError:
-                            continue  # Skip rows that don’t match expected structure
-
-    except Exception as e:
-        return {"error": str(e)}
+    for line in raw_text:
+        parts = line.split()
+        if len(parts) >= 5 and "/" in parts[0]:  # Basic transaction check
+            try:
+                date = parts[0]
+                description = " ".join(parts[1:-3])
+                amount = parts[-3]
+                fees = parts[-2]
+                balance = parts[-1]
+                
+                transactions.append({
+                    "date": date,
+                    "description": description.strip(),
+                    "amount": amount.strip(),
+                    "fees": fees.strip(),
+                    "balance": balance.strip()
+                })
+            except IndexError:
+                continue
 
     return transactions
-
 
 @app.route("/upload", methods=["POST"])
 def upload():
