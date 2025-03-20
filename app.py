@@ -13,7 +13,7 @@ def extract_transactions(pdf_path):
         with pdfplumber.open(pdf_path) as pdf:
             for page in pdf.pages:
                 tables = page.extract_tables()
-                
+
                 for table in tables:
                     for row in table:
                         # Skip empty rows or header rows
@@ -21,15 +21,17 @@ def extract_transactions(pdf_path):
                             continue  
 
                         try:
-                            date = row[0]
-                            description = row[1]
-                            amount = row[-2]  # Assume amount is second last column
-                            balance = row[-1]  # Assume balance is last column
-                            
+                            date = row[0]  # First column is Date
+                            description = row[1]  # Second column is Description
+                            amount = row[-3]  # Third last column is Amount
+                            fees = row[-2]  # Second last column is Fees
+                            balance = row[-1]  # Last column is Balance
+
                             transactions.append({
-                                "date": date,
+                                "date": date.strip(),
                                 "description": description.strip(),
                                 "amount": amount.strip(),
+                                "fees": fees.strip(),
                                 "balance": balance.strip()
                             })
                         except IndexError:
@@ -39,6 +41,7 @@ def extract_transactions(pdf_path):
         return {"error": str(e)}
 
     return transactions
+
 
 @app.route("/upload", methods=["POST"])
 def upload():
