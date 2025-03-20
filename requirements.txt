@@ -3,3 +3,5 @@ gunicorn
 flask-cors
 pymupdf
 pdfplumber
+pytesseract
+pillow
