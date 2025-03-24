@@ -30,7 +30,9 @@ def extract_transactions(pdf_path):
     """Extracts transactions dynamically from digital and scanned PDFs."""
     transactions = []
     
-    if is_scanned_pdf(pdf_path):
+    is_scanned = is_scanned_pdf(pdf_path)
+
+    if is_scanned:
         raw_text = extract_text_from_scanned_pdf(pdf_path).split("\n")
     else:
         with pdfplumber.open(pdf_path) as pdf:
@@ -41,8 +43,8 @@ def extract_transactions(pdf_path):
     for line in raw_text:
         parts = line.split()
 
-        # Ensure at least 6 parts exist (Posting Date, Transaction Date, Description, Money In, Money Out, Balance)
-        if len(parts) >= 6 and "/" in parts[1]:  
+        # Check if it's a 6-column scanned bank statement
+        if is_scanned and len(parts) >= 6 and "/" in parts[1]:  
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
@@ -56,7 +58,6 @@ def extract_transactions(pdf_path):
                     money_in = "0.00"
                     money_out = parts[-3]
                 
-                fees = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
                 balance = parts[-1]
 
                 transactions.append({
@@ -65,6 +66,24 @@ def extract_transactions(pdf_path):
                     "description": description.strip(),
                     "money_in": money_in.strip(),
                     "money_out": money_out.strip(),
+                    "balance": balance.strip()
+                })
+            except IndexError:
+                continue
+
+        # Handle 5-column digital format (previous logic)
+        elif not is_scanned and len(parts) >= 5 and "/" in parts[0]:  
+            try:
+                date = parts[0]
+                description = " ".join(parts[1:-3])
+                amount = parts[-3]
+                fees = parts[-2]
+                balance = parts[-1]
+
+                transactions.append({
+                    "date": date.strip(),
+                    "description": description.strip(),
+                    "amount": amount.strip(),
                     "fees": fees.strip(),
                     "balance": balance.strip()
                 })
@@ -72,6 +91,7 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
+
 
 
 @app.route("/upload", methods=["POST"])
