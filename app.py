@@ -47,10 +47,10 @@ def extract_transactions(pdf_path):
                 posting_date = parts[0]
                 transaction_date = parts[1]
                 description = " ".join(parts[2:-3])  # Everything in between
-                money_in = parts[-3]
-                money_out = parts[-2]
+                money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
+                money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
                 balance = parts[-1]
-                
+
                 transactions.append({
                     "posting_date": posting_date.strip(),
                     "transaction_date": transaction_date.strip(),
@@ -82,6 +82,7 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
+
 
 @app.route("/upload", methods=["POST"])
 def upload():
