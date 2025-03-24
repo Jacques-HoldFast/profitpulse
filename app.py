@@ -30,7 +30,6 @@ def extract_transactions(pdf_path):
     """Extracts transactions dynamically from both digital and scanned PDFs."""
     transactions = []
     
-    # Check if the PDF is scanned
     is_scanned = is_scanned_pdf(pdf_path)
 
     if is_scanned:
@@ -44,17 +43,23 @@ def extract_transactions(pdf_path):
     for line in raw_text:
         parts = line.split()
 
-        # Ensure we have at least 6 columns: Posting Date, Transaction Date, Description, Money In, Money Out, Balance
+        # Ensure we have at least 6 columns
         if len(parts) >= 6 and "/" in parts[1]:  
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
                 description = " ".join(parts[2:-3])  # Everything between dates and amounts
+
+                # Handle balance values with spaces (e.g., "44 878.47")
+                balance_parts = parts[-1:]
+                while not balance_parts[0].replace(",", "").replace(".", "").isdigit():
+                    balance_parts.insert(0, parts.pop(-2))  # Join the previous part
+
+                balance = " ".join(balance_parts).replace(" ", "")  # Remove spaces
                 
                 # Identify Money In and Money Out correctly
                 money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
                 money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
-                balance = parts[-1]
 
                 transactions.append({
                     "posting_date": posting_date.strip(),
@@ -68,6 +73,7 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
+
 
 
 
