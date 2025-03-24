@@ -50,37 +50,40 @@ def extract_transactions(pdf_path):
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
-                description = " ".join(parts[2:-3])  # Everything between dates and amounts
                 
                 # Extract balance by combining split numbers (if applicable)
                 balance_match = re.search(r"(\d{1,3}(?:\s\d{3})*\.\d{2})$", line)
                 balance = balance_match.group(1) if balance_match else parts[-1]
-                
-                # Ensure balance retains space formatting (e.g., "44 878.47")
-                balance = balance.replace(",", "")  # Remove commas if present
+                balance = balance.replace(",", "")  # Ensure balance formatting
 
-                # Extract Money In and Money Out correctly
+                # Identify Money In and Money Out correctly
                 money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
-                money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
+                money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() or "-" in parts[-2] else "0.00"
 
-                # If Money In exists, Money Out should be 0.00 and vice versa
-                if money_in != "0.00":
-                    money_out = "0.00"
-                elif money_out != "0.00":
-                    money_in = "0.00"
+                # If Money Out is negative, ensure it's correctly assigned
+                if "-" in money_out:
+                    money_out = money_out.strip()  # Keep the negative sign
+                    money_in = "0.00"  # Ensure Money In is 0
+                else:
+                    money_in = money_in.strip()
+                    money_out = "0.00"  # Ensure Money Out is 0
+
+                # Extract description while ensuring money_out is removed from it
+                description = " ".join(parts[2:-3]).strip()
 
                 transactions.append({
                     "posting_date": posting_date.strip(),
                     "transaction_date": transaction_date.strip(),
                     "description": description.strip(),
-                    "money_in": money_in.strip(),
-                    "money_out": money_out.strip(),
-                    "balance": balance.strip()  # Keep spaces in balance
+                    "money_in": money_in,
+                    "money_out": money_out,
+                    "balance": balance.strip()
                 })
             except IndexError:
                 continue
 
     return transactions
+
 
 
 @app.route("/upload", methods=["POST"])
