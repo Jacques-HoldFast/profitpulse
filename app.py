@@ -27,7 +27,7 @@ def extract_text_from_scanned_pdf(pdf_path):
     return text
 
 def extract_transactions(pdf_path):
-    """Extracts transactions from a PDF (both digital & scanned)."""
+    """Extracts transactions dynamically from digital and scanned PDFs."""
     transactions = []
     
     if is_scanned_pdf(pdf_path):
@@ -40,16 +40,39 @@ def extract_transactions(pdf_path):
 
     for line in raw_text:
         parts = line.split()
-        if len(parts) >= 5 and "/" in parts[0]:  # Basic transaction check
+
+        # Check if the row has 6 columns (scanned bank statement)
+        if len(parts) >= 6 and "/" in parts[1]:  
+            try:
+                posting_date = parts[0]
+                transaction_date = parts[1]
+                description = " ".join(parts[2:-3])  # Everything in between
+                money_in = parts[-3]
+                money_out = parts[-2]
+                balance = parts[-1]
+                
+                transactions.append({
+                    "posting_date": posting_date.strip(),
+                    "transaction_date": transaction_date.strip(),
+                    "description": description.strip(),
+                    "money_in": money_in.strip(),
+                    "money_out": money_out.strip(),
+                    "balance": balance.strip()
+                })
+            except IndexError:
+                continue
+
+        # Handle 5-column format (previous logic)
+        elif len(parts) >= 5 and "/" in parts[0]:  
             try:
                 date = parts[0]
                 description = " ".join(parts[1:-3])
                 amount = parts[-3]
                 fees = parts[-2]
                 balance = parts[-1]
-                
+
                 transactions.append({
-                    "date": date,
+                    "date": date.strip(),
                     "description": description.strip(),
                     "amount": amount.strip(),
                     "fees": fees.strip(),
