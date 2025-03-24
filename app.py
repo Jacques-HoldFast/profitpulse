@@ -28,6 +28,8 @@ def extract_text_from_scanned_pdf(pdf_path):
 
 import re
 
+import re
+
 def extract_transactions(pdf_path):
     """Extracts transactions dynamically from both digital and scanned PDFs."""
     transactions = []
@@ -50,25 +52,25 @@ def extract_transactions(pdf_path):
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
-                
-                # Extract balance by combining split numbers (if applicable)
+
+                # Extract balance while keeping its format (e.g., "44 878.47")
                 balance_match = re.search(r"(\d{1,3}(?:\s\d{3})*\.\d{2})$", line)
                 balance = balance_match.group(1) if balance_match else parts[-1]
-                balance = balance.replace(",", "")  # Ensure balance formatting
+                balance = balance.replace(",", "")
 
                 # Identify Money In and Money Out correctly
-                money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
-                money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() or "-" in parts[-2] else "0.00"
+                potential_money_in = parts[-3]
+                potential_money_out = parts[-2]
 
-                # If Money Out is negative, ensure it's correctly assigned
-                if "-" in money_out:
-                    money_out = money_out.strip()  # Keep the negative sign
-                    money_in = "0.00"  # Ensure Money In is 0
+                # Money Out is always negative, so check for "-"
+                if "-" in potential_money_out:
+                    money_out = potential_money_out.strip()  # Keep negative sign
+                    money_in = "0.00"
                 else:
-                    money_in = money_in.strip()
-                    money_out = "0.00"  # Ensure Money Out is 0
+                    money_in = potential_money_in.strip() if potential_money_in.replace(",", "").replace(".", "").isdigit() else "0.00"
+                    money_out = "0.00"
 
-                # Extract description while ensuring money_out is removed from it
+                # Ensure description is properly extracted and doesn't include money_out
                 description = " ".join(parts[2:-3]).strip()
 
                 transactions.append({
@@ -83,6 +85,7 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
+
 
 
 
