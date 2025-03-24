@@ -50,13 +50,14 @@ def extract_transactions(pdf_path):
                 transaction_date = parts[1]
                 description = " ".join(parts[2:-3])  # Everything between dates and amounts
 
-                # Handle balance values with spaces (e.g., "44 878.47")
-                balance_parts = parts[-1:]
-                while not balance_parts[0].replace(",", "").replace(".", "").isdigit():
-                    balance_parts.insert(0, parts.pop(-2))  # Join the previous part
+                # Fix balance value if it has spaces (e.g., "44 878.47")
+                balance = parts[-1]
+                while not balance.replace(",", "").replace(".", "").isdigit():
+                    balance = parts[-2] + balance  # Join previous part
+                    parts.pop(-2)  # Remove incorrect split part
 
-                balance = " ".join(balance_parts).replace(" ", "")  # Remove spaces
-                
+                balance = balance.replace(" ", "")  # Ensure no spaces in balance
+
                 # Identify Money In and Money Out correctly
                 money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
                 money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
@@ -73,7 +74,6 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
-
 
 
 
