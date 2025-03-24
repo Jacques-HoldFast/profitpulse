@@ -27,9 +27,10 @@ def extract_text_from_scanned_pdf(pdf_path):
     return text
 
 def extract_transactions(pdf_path):
-    """Extracts transactions dynamically from digital and scanned PDFs."""
+    """Extracts transactions dynamically from both digital and scanned PDFs."""
     transactions = []
     
+    # Check if the PDF is scanned
     is_scanned = is_scanned_pdf(pdf_path)
 
     if is_scanned:
@@ -43,21 +44,16 @@ def extract_transactions(pdf_path):
     for line in raw_text:
         parts = line.split()
 
-        # Check if it's a 6-column scanned bank statement
-        if is_scanned and len(parts) >= 6 and "/" in parts[1]:  
+        # Ensure we have at least 6 columns: Posting Date, Transaction Date, Description, Money In, Money Out, Balance
+        if len(parts) >= 6 and "/" in parts[1]:  
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
                 description = " ".join(parts[2:-3])  # Everything between dates and amounts
                 
                 # Identify Money In and Money Out correctly
-                if parts[-3].replace(",", "").replace(".", "").isdigit():  # Money In is valid
-                    money_in = parts[-3]
-                    money_out = "0.00"
-                else:  # Money Out is valid
-                    money_in = "0.00"
-                    money_out = parts[-3]
-                
+                money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
+                money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
                 balance = parts[-1]
 
                 transactions.append({
@@ -66,25 +62,6 @@ def extract_transactions(pdf_path):
                     "description": description.strip(),
                     "money_in": money_in.strip(),
                     "money_out": money_out.strip(),
-                    "balance": balance.strip()
-                })
-            except IndexError:
-                continue
-
-        # Handle 5-column digital format (previous logic)
-        elif not is_scanned and len(parts) >= 5 and "/" in parts[0]:  
-            try:
-                date = parts[0]
-                description = " ".join(parts[1:-3])
-                amount = parts[-3]
-                fees = parts[-2]
-                balance = parts[-1]
-
-                transactions.append({
-                    "date": date.strip(),
-                    "description": description.strip(),
-                    "amount": amount.strip(),
-                    "fees": fees.strip(),
                     "balance": balance.strip()
                 })
             except IndexError:
