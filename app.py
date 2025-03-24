@@ -26,6 +26,8 @@ def extract_text_from_scanned_pdf(pdf_path):
             text += pytesseract.image_to_string(img) + "\n"
     return text
 
+import re
+
 def extract_transactions(pdf_path):
     """Extracts transactions dynamically from both digital and scanned PDFs."""
     transactions = []
@@ -49,18 +51,23 @@ def extract_transactions(pdf_path):
                 posting_date = parts[0]
                 transaction_date = parts[1]
                 description = " ".join(parts[2:-3])  # Everything between dates and amounts
+                
+                # Extract balance by combining split numbers (if applicable)
+                balance_match = re.search(r"(\d{1,3}(?:\s\d{3})*\.\d{2})$", line)
+                balance = balance_match.group(1) if balance_match else parts[-1]
+                
+                # Ensure balance retains space formatting (e.g., "44 878.47")
+                balance = balance.replace(",", "")  # Remove commas if present
 
-                # Fix balance value if it has spaces (e.g., "44 878.47")
-                balance = parts[-1]
-                while not balance.replace(",", "").replace(".", "").isdigit():
-                    balance = parts[-2] + balance  # Join previous part
-                    parts.pop(-2)  # Remove incorrect split part
-
-                balance = balance.replace(" ", "")  # Ensure no spaces in balance
-
-                # Identify Money In and Money Out correctly
+                # Extract Money In and Money Out correctly
                 money_in = parts[-3] if parts[-3].replace(",", "").replace(".", "").isdigit() else "0.00"
                 money_out = parts[-2] if parts[-2].replace(",", "").replace(".", "").isdigit() else "0.00"
+
+                # If Money In exists, Money Out should be 0.00 and vice versa
+                if money_in != "0.00":
+                    money_out = "0.00"
+                elif money_out != "0.00":
+                    money_in = "0.00"
 
                 transactions.append({
                     "posting_date": posting_date.strip(),
@@ -68,13 +75,12 @@ def extract_transactions(pdf_path):
                     "description": description.strip(),
                     "money_in": money_in.strip(),
                     "money_out": money_out.strip(),
-                    "balance": balance.strip()
+                    "balance": balance.strip()  # Keep spaces in balance
                 })
             except IndexError:
                 continue
 
     return transactions
-
 
 
 @app.route("/upload", methods=["POST"])
