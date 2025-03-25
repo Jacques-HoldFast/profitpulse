@@ -28,7 +28,6 @@ def extract_text_from_scanned_pdf(pdf_path):
 
 import re
 
-import re
 
 def extract_transactions(pdf_path):
     """Extracts transactions dynamically from both digital and scanned PDFs."""
