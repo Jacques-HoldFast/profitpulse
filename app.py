@@ -43,22 +43,27 @@ def extract_transactions(pdf_path):
                 raw_text.extend(page.extract_text().split("\n"))
 
     for line in raw_text:
+        print(f"\n=== Debugging Line ===\n{line}")  # DEBUG: Print the raw line
+        
         parts = line.split()
+        print(f"Split Parts: {parts}")  # DEBUG: Show how the line is split
 
         # Ensure we have at least 6 columns
         if len(parts) >= 6 and "/" in parts[1]:  
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
+                print(f"Posting Date: {posting_date}, Transaction Date: {transaction_date}")  # DEBUG
 
                 # Extract balance while keeping its format (e.g., "44 878.47")
                 balance_match = re.search(r"(\d{1,3}(?:\s\d{3})*\.\d{2})$", line)
                 balance = balance_match.group(1) if balance_match else parts[-1]
                 balance = balance.replace(",", "")
+                print(f"Balance: {balance}")  # DEBUG
 
-                # Check if `money_out` is split into two parts (e.g., "-3 027.86")
+                # Identify Money Out and handle split negative values (e.g., "-3 027.86")
                 if parts[-2].startswith("-") and parts[-1].replace(",", "").replace(".", "").isdigit():
-                    money_out = parts[-2] + " " + parts[-1]  # Join the two parts
+                    money_out = parts[-2] + " " + parts[-1]  # Join split negative number
                     money_in = "0.00"
                     description_parts = parts[2:-4]  # Adjust description range
                 elif "-" in parts[-2] and parts[-2].replace("-", "").replace(",", "").replace(".", "").isdigit():
@@ -70,8 +75,11 @@ def extract_transactions(pdf_path):
                     money_out = "0.00"
                     description_parts = parts[2:-3]
 
+                print(f"Money In: {money_in}, Money Out: {money_out}")  # DEBUG
+
                 # Ensure description is properly extracted and doesn't include money_out
                 description = " ".join(description_parts).strip()
+                print(f"Description: {description}")  # DEBUG
 
                 transactions.append({
                     "posting_date": posting_date.strip(),
@@ -82,6 +90,7 @@ def extract_transactions(pdf_path):
                     "balance": balance.strip()
                 })
             except IndexError:
+                print("IndexError occurred while processing transaction")  # DEBUG
                 continue
 
     return transactions
