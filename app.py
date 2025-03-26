@@ -28,8 +28,10 @@ def extract_text_from_scanned_pdf(pdf_path):
 
 import re
 
+import re
+
 def extract_transactions(pdf_path):
-    """Extracts transactions dynamically from both digital and scanned PDFs, limiting to first 5 for debugging."""
+    """Extracts transactions dynamically from both digital and scanned PDFs, correctly handling split `money_out` values."""
     transactions = []
     
     is_scanned = is_scanned_pdf(pdf_path)
@@ -45,7 +47,7 @@ def extract_transactions(pdf_path):
     count = 0  # Track number of transactions processed
 
     for line in raw_text:
-        if count >= 5:  # Stop after 5 transactions
+        if count >= 5:  # Limit to first 5 transactions for debugging
             break
 
         print(f"\n=== Debugging Line {count+1} ===\n{line}")  # DEBUG
@@ -64,13 +66,13 @@ def extract_transactions(pdf_path):
                 balance = balance.replace(",", "")
                 print(f"Balance: {balance}")  # DEBUG
 
-                # Detect split Money Out values
-                if parts[-2].startswith("-") and parts[-1].replace(",", "").replace(".", "").isdigit():
-                    money_out = parts[-2] + " " + parts[-1]  # Join split negative number
+                # Handle split Money Out values (e.g., "-1 406.00")
+                if parts[-3] == "-" and parts[-2].replace(",", "").replace(".", "").isdigit():
+                    money_out = parts[-3] + " " + parts[-2]  # Join the split negative number
                     money_in = "0.00"
-                    description_parts = parts[2:-4]  
-                elif "-" in parts[-2] and parts[-2].replace("-", "").replace(",", "").replace(".", "").isdigit():
-                    money_out = parts[-2]
+                    description_parts = parts[2:-4]  # Adjust description range
+                elif "-" in parts[-3] and parts[-3].replace("-", "").replace(",", "").replace(".", "").isdigit():
+                    money_out = parts[-3]
                     money_in = "0.00"
                     description_parts = parts[2:-3]
                 else:
@@ -99,6 +101,7 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
+
 
 
 
