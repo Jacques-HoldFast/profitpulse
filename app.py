@@ -66,11 +66,11 @@ def extract_transactions(pdf_path):
                 print(f"Balance: {balance}")  # DEBUG
 
                 # Detect and join split `money_out` (e.g., "-1 406.00")
-                if parts[-3].startswith("-") and parts[-2].replace(",", "").replace(".", "").isdigit():
+                if parts[-3] == "-" or (parts[-3].startswith("-") and parts[-2].replace(",", "").replace(".", "").isdigit()):
                     money_out = parts[-3] + " " + parts[-2]  # Merge `-1` and `406.00`
                     money_in = "0.00"
                     description_parts = parts[2:-4]  # Adjust description range
-                elif "-" in parts[-3] and parts[-3].replace("-", "").replace(",", "").replace(".", "").isdigit():
+                elif parts[-3].startswith("-") and parts[-3].replace("-", "").replace(",", "").replace(".", "").isdigit():
                     money_out = parts[-3]
                     money_in = "0.00"
                     description_parts = parts[2:-3]
@@ -100,6 +100,7 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
+
 
 
 
