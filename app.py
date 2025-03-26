@@ -50,7 +50,7 @@ def extract_transactions(pdf_path):
         if count >= 5:  # Limit to first 5 transactions for debugging
             break
 
-        print(f"\n=== Debugging Line {count+1} ===\n{line}")  # DEBUG
+        print(f"\n==eeeee= Debugging Line {count+1} ===\n{line}")  # DEBUG
         parts = line.split()
         print(f"Split Parts: {parts}")  # DEBUG
 
