@@ -28,7 +28,6 @@ def extract_text_from_scanned_pdf(pdf_path):
 
 import re
 
-
 def extract_transactions(pdf_path):
     """Extracts transactions dynamically from both digital and scanned PDFs."""
     transactions = []
@@ -61,8 +60,11 @@ def extract_transactions(pdf_path):
                 potential_money_in = parts[-3]
                 potential_money_out = parts[-2]
 
-                # Money Out is always negative, so check for "-"
-                if "-" in potential_money_out:
+                # Handle cases where money_out is split into two parts (e.g., "-3 027.86")
+                if potential_money_out == "-" and parts[-1].replace(",", "").replace(".", "").isdigit():
+                    money_out = potential_money_out + " " + parts[-1]  # Merge split negative value
+                    money_in = "0.00"
+                elif "-" in potential_money_out:
                     money_out = potential_money_out.strip()  # Keep negative sign
                     money_in = "0.00"
                 else:
@@ -76,8 +78,8 @@ def extract_transactions(pdf_path):
                     "posting_date": posting_date.strip(),
                     "transaction_date": transaction_date.strip(),
                     "description": description.strip(),
-                    "money_in": money_in,
-                    "money_out": money_out,
+                    "money_in": money_in.strip(),
+                    "money_out": money_out.strip(),
                     "balance": balance.strip()
                 })
             except IndexError:
