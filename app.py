@@ -26,7 +26,6 @@ def extract_text_from_scanned_pdf(pdf_path):
             text += pytesseract.image_to_string(img) + "\n"
     return text
 
-import re
 
 import re
 
@@ -50,7 +49,7 @@ def extract_transactions(pdf_path):
         if count >= 5:  # Limit to first 5 transactions for debugging
             break
 
-        print(f"\n==eeeee= Debugging Line {count+1} ===\n{line}")  # DEBUG
+        print(f"\n=== Debugging Line {count+1} ===\n{line}")  # DEBUG
         parts = line.split()
         print(f"Split Parts: {parts}")  # DEBUG
 
@@ -66,9 +65,9 @@ def extract_transactions(pdf_path):
                 balance = balance.replace(",", "")
                 print(f"Balance: {balance}")  # DEBUG
 
-                # Handle split Money Out values (e.g., "-1 406.00")
-                if parts[-3] == "-" and parts[-2].replace(",", "").replace(".", "").isdigit():
-                    money_out = parts[-3] + " " + parts[-2]  # Join the split negative number
+                # Detect and join split `money_out` (e.g., "-1 406.00")
+                if parts[-3].startswith("-") and parts[-2].replace(",", "").replace(".", "").isdigit():
+                    money_out = parts[-3] + " " + parts[-2]  # Merge `-1` and `406.00`
                     money_in = "0.00"
                     description_parts = parts[2:-4]  # Adjust description range
                 elif "-" in parts[-3] and parts[-3].replace("-", "").replace(",", "").replace(".", "").isdigit():
@@ -101,8 +100,6 @@ def extract_transactions(pdf_path):
                 continue
 
     return transactions
-
-
 
 
 
