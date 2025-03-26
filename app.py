@@ -29,7 +29,7 @@ def extract_text_from_scanned_pdf(pdf_path):
 import re
 
 def extract_transactions(pdf_path):
-    """Extracts transactions dynamically from both digital and scanned PDFs."""
+    """Extracts transactions dynamically from both digital and scanned PDFs, limiting to first 5 for debugging."""
     transactions = []
     
     is_scanned = is_scanned_pdf(pdf_path)
@@ -42,30 +42,33 @@ def extract_transactions(pdf_path):
             for page in pdf.pages:
                 raw_text.extend(page.extract_text().split("\n"))
 
-    for line in raw_text:
-        print(f"\n=== Debugging Line ===\n{line}")  # DEBUG: Print the raw line
-        
-        parts = line.split()
-        print(f"Split Parts: {parts}")  # DEBUG: Show how the line is split
+    count = 0  # Track number of transactions processed
 
-        # Ensure we have at least 6 columns
+    for line in raw_text:
+        if count >= 5:  # Stop after 5 transactions
+            break
+
+        print(f"\n=== Debugging Line {count+1} ===\n{line}")  # DEBUG
+        parts = line.split()
+        print(f"Split Parts: {parts}")  # DEBUG
+
         if len(parts) >= 6 and "/" in parts[1]:  
             try:
                 posting_date = parts[0]
                 transaction_date = parts[1]
                 print(f"Posting Date: {posting_date}, Transaction Date: {transaction_date}")  # DEBUG
 
-                # Extract balance while keeping its format (e.g., "44 878.47")
+                # Extract balance (join split parts if necessary)
                 balance_match = re.search(r"(\d{1,3}(?:\s\d{3})*\.\d{2})$", line)
                 balance = balance_match.group(1) if balance_match else parts[-1]
                 balance = balance.replace(",", "")
                 print(f"Balance: {balance}")  # DEBUG
 
-                # Identify Money Out and handle split negative values (e.g., "-3 027.86")
+                # Detect split Money Out values
                 if parts[-2].startswith("-") and parts[-1].replace(",", "").replace(".", "").isdigit():
                     money_out = parts[-2] + " " + parts[-1]  # Join split negative number
                     money_in = "0.00"
-                    description_parts = parts[2:-4]  # Adjust description range
+                    description_parts = parts[2:-4]  
                 elif "-" in parts[-2] and parts[-2].replace("-", "").replace(",", "").replace(".", "").isdigit():
                     money_out = parts[-2]
                     money_in = "0.00"
@@ -77,7 +80,6 @@ def extract_transactions(pdf_path):
 
                 print(f"Money In: {money_in}, Money Out: {money_out}")  # DEBUG
 
-                # Ensure description is properly extracted and doesn't include money_out
                 description = " ".join(description_parts).strip()
                 print(f"Description: {description}")  # DEBUG
 
@@ -89,11 +91,15 @@ def extract_transactions(pdf_path):
                     "money_out": money_out.strip(),
                     "balance": balance.strip()
                 })
+
+                count += 1  # Increment transaction counter
+
             except IndexError:
                 print("IndexError occurred while processing transaction")  # DEBUG
                 continue
 
     return transactions
+
 
 
 
